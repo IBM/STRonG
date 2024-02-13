@@ -1,0 +1,371 @@
+# SHC example graph with 'Firewall'- and Agent-OS partially collapsed compared to full model
+
+# include the stencil and layer definitions
+# the listed files need to be located in the same directory
+# if not, relative paths are required
+includes:
+  - stencil.yml
+  - layer.yml
+
+# define the target nodes
+target:
+  - services.rabbitmq.core
+
+# list of designated attacker nodes
+attacker:
+  - user.attksrc
+
+groups:
+  - GP.core: 0.1013
+  - Gamqp: 0.3188
+  - Gmemory: 0.2326
+  - Gsyscall: 0.0737
+  - Gshcif: 0.1691
+  - Geth: 0.1388
+######################################################
+# services layer
+novacompute:
+  stencil: process
+  layer: services
+  modifier:
+    - comm:
+        - {n: shcif, g: Gshcif, i: 2.500}
+        - {n: amqp, g: Gamqp, i: 1.833}
+    - core:
+        - {n: core, g: GP.core, i: 2.000}
+    - memory:
+        - {n: memory, g: Gmemory, i: 2.667}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.000}
+  
+  links:
+    - {s: shcif, d: shc.host.shcif}
+    - {s: memory, d: os.computeOS.memory}
+    - {s: syscall, d: os.computeOS.syscall}
+    - {s: amqp, d: services.protocheck.clEP}
+    - {s: amqp, d: services.rabbitmq.amqp}
+    - {s: amqp, d: services.novacompute.shcif}
+
+rabbitmq:
+  stencil: process
+  layer: services
+  modifier:
+    - comm:
+        - {n: shcif, g: Gshcif, i: 2.500}
+        - {n: amqp, g: Gamqp, i: 2.167}
+    - core:
+        - {n: core, g: GP.core, i: 2.667}
+    - memory:
+        - {n: memory, g: Gmemory, i: 2.667}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.000}
+  links:
+    - {s: shcif, d: shc.client.shcif}
+    - {s: memory, d: os.controlOS.memory}
+    - {s: syscall, d: os.controlOS.syscall}
+    - {s: amqp, d: shc.client.tcpssl}
+    - {s: amqp, d: services.rabbitmq.shcif}
+
+protocheck:  
+  stencil: process
+  layer: services
+  modifier:
+    - comm:
+        - {n: clEP, g: Gamqp, i: 1.833}
+        - {n: srvEP, g: Gamqp, i: 2.167}
+    - core:
+        - {n: core, g: GP.core, i: 2.333}
+    - syscall:
+        - {n: plugin, p: 0.0737, i: 3.000}
+    - memory: []
+  links:
+    - {s: srvEP, d: services.rabbitmq.amqp}
+    - {s: plugin, d: shc.server.plugin}
+    - {s: srvEP, d: shc.server.tcpssl}
+    - {s: clEP, d: shc.server.shccomm}
+
+######################################################
+# User layer
+# application:
+#   stencil: process
+#   layer: user
+#   collapsed:
+#     - comm
+#     - memory
+#     - syscall
+#   links:
+#     - {s: comm, d: user.external}
+#     - {s: comm, d: os.vm.network}
+#     - {s: memory, d: os.vm.memory}
+#     - {s: syscall, d: os.vm.syscall}
+
+# external:
+#   layer: user
+#   links:
+#     - {d: net.ethB}
+#     - {d: user.application.comm}
+
+attksrc:
+  layer: user
+  probability: 1
+  links:
+    - {d: iso.memiso}
+    - {d: iso.vmiso}
+    - {d: iso.pcieiso}
+    - {d: iso.vxlaniso}
+  impact: 1.0
+######################################################
+# SHC layer
+client:
+  stencil: process
+  layer: shc
+  modifier:
+    - comm:
+        - {n: tcpssl, g: Gamqp, i: 2.167}
+        - {n: shcif, g: Gshcif, i: 3.000}
+    - core:
+        - {n: core, g: GP.core, i: 2.333}
+    - memory:
+        - {n: memory, g: Gmemory, i: 3.000}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.333}
+  links:
+    - {s: tcpssl, d: services.rabbitmq.amqp}
+    - {s: tcpssl, d: os.controlOS.network}
+    - {s: shcif, d: services.rabbitmq.shcif}
+    - {s: memory, d: os.controlOS.memory}
+    - {s: syscall, d: os.controlOS.syscall}
+
+server:
+  stencil: process
+  layer: shc
+  modifier:
+    - comm:
+        - {n: tcpssl, g: Gamqp, i: 2.500}
+        - {n: plugin, p: 0.0737, i: 3.000}
+        - {n: shccomm, p: 0.1691, i: 3.333}
+    - core:
+        - {n: core, g: GP.core, i: 3.667}
+    - memory:
+        - {n: memory, g: Gmemory, i: 3.667}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.333}
+  links:
+    - {s: tcpssl, d: shc.client.tcpssl}
+    - {s: tcpssl, d: services.protocheck.srvEP}
+    - {s: tcpssl, d: os.snicOS.network}
+    - {s: plugin, d: services.protocheck.plugin}
+    - {s: memory, d: os.snicOS.memory}
+    - {s: syscall, d: os.snicOS.syscall}
+    - {s: shccomm, d: services.protocheck.clEP}
+    - {s: shccomm, d: os.snicOS.memory}
+
+host:
+  stencil: process
+  layer: shc
+  modifier:
+    - comm:
+        - {n: shccomm, p: 0.1691, i: 2.167}
+        - {n: shcif, g: Gshcif, i: 3.000}
+    - core:
+        - {n: core, p: 0.0737, i: 2.333}
+    - memory:
+        - {n: memory, g: Gmemory, i: 3.000}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.333}
+  links:
+    - {s: shccomm, d: shc.server.shccomm}
+    - {s: shccomm, d: os.computeOS.memory}
+    - {s: shcif, d: services.novacompute.shcif}
+    - {s: memory, d: os.computeOS.memory}
+    - {s: syscall, d: os.computeOS.syscall}
+
+######################################################
+#  OS layer
+controlOS:
+  stencil: linux
+  layer: os
+  collapsed:
+    - drivers
+    - filesys
+    - memorymgt
+    - processmgt
+    # - syscall
+    # - memory
+    # - network
+  cprobability: 0.1767
+  cimpact: 4.0
+  links:
+    - {s: processmgt, d: shc.client.core}
+    - {s: processmgt, d: services.rabbitmq.core}
+    - {s: memory, d: shc.client.memory}
+    - {s: memory, d: services.rabbitmq.memory}
+    - {s: syscall, d: shc.client.syscall}
+    - {s: syscall, d: services.rabbitmq.syscall}
+    - {s: network, d: shc.client.tcpssl}
+
+snicOS:
+  stencil: linux
+  layer: os
+  collapsed:
+    - drivers
+    - filesys
+    - memorymgt
+    - processmgt
+    - syscall
+    - memory
+    - network
+  cprobability: 0.1388
+  cimpact: 4.0
+  links:
+    - {s: processmgt, d: shc.server.core}
+    - {s: memory, d: shc.server.memory}
+    - {s: memory, d: shc.server.shccomm}
+    - {s: syscall, d: shc.server.syscall}
+    - {s: network, d: net.ethAout}
+
+computeOS:
+  stencil: linux
+  layer: os
+  collapsed:
+    - drivers
+    - filesys
+    - memorymgt
+    - processmgt
+    - syscall
+    - memory
+    - network
+  cprobability: 0.1767
+  cimpact: 4.0
+  links:
+    - {s: processmgt, d: shc.host.core}
+    - {s: processmgt, d: services.novacompute.core}
+    - {s: memory, d: shc.host.memory}
+    - {s: memory, d: services.novacompute.memory}
+    - {s: memory, d: net.pcie}
+    - {s: memory, d: shc.host.shccomm}
+    - {s: syscall, d: shc.host.syscall}
+    - {s: syscall, d: services.novacompute.syscall}
+      #    - {s: memory, d: iso.memiso}
+      #    - {s: network, d: iso.vmiso}
+      #    - {s: filesys, d: iso.vmiso}
+      #    - {s: processmgt, d: iso.vmiso}
+      #    - {s: memorymgt, d: iso.vmiso}
+      #    - {s: syscall, d: iso.vmiso}
+      #    - {s: drivers, d: iso.vmiso}
+
+# vm:
+#   stencil: linux
+#   layer: os
+#   collapsed:
+#     - drivers
+#     - filesys
+#     - memorymgt
+#     - processmgt
+#     - syscall
+#       #    - memory
+#     - network
+#   probability: 0.1767
+#   links:
+#     - {s: syscall, d: user.application.syscall}
+#     - {s: memory, d: user.application.memory}
+#     - {s: memory, d: net.pcieusr}
+#     - {s: processmgt, d: user.application.core}
+#     - {s: network, d: user.application.comm}
+#     - {s: network, d: net.ethB}
+#     - {s: memory, d: iso.memiso}
+#     - {s: network, d: iso.vmiso}
+#     - {s: filesys, d: iso.vmiso}
+#     - {s: processmgt, d: iso.vmiso}
+#     - {s: memorymgt, d: iso.vmiso}
+#     - {s: syscall, d: iso.vmiso}
+#     - {s: drivers, d: iso.vmiso}
+
+######################################################
+#  network layer
+pcie:
+  layer: net
+  probability: 0.0737
+  impact: 2.833
+  links:
+    - {d: os.snicOS.memory}
+    - {d: net.ethAout}
+
+ethAin:
+  layer: net
+  probability: 0.1388
+  links:
+    - {d: os.snicOS.network}
+  impact: 2.833
+
+ethAout:
+  layer: net
+  probability: 0.1388
+  links:
+    - {d: net.ethC}
+  impact: 2.500
+
+ethC:
+  layer: net
+  probability: 0.1388
+  links:
+    - {d: os.controlOS.network}
+  impact: 2.833
+
+# pcieusr:
+#   layer: net
+#   links:
+#     - {d: os.vm.memory}
+#     - {d: net.ethB}
+#     - {d: iso.pcieiso}
+
+# ethB:
+#   layer: net
+#   links:
+#     - {d: os.vm.network}
+#     - {d: net.pcieusr}
+#     - {d: user.external}
+#     - {d: iso.vxlaniso}
+
+######################################################
+#  isolation layer
+memiso:
+  layer: iso
+  probability: 0.2960
+  impact: 1.667
+  links:
+    - {d: os.computeOS.memory}
+      #    - {d: os.vm.memory}
+
+vmiso: 
+  layer: iso
+  probability: 0.2326
+  impact: 1.667
+  links:
+    - {d: os.computeOS.network}
+    - {d: os.computeOS.filesys}
+    - {d: os.computeOS.processmgt}
+    - {d: os.computeOS.memorymgt}    
+    - {d: os.computeOS.syscall}
+    - {d: os.computeOS.drivers}
+      #    - {d: os.vm.network}
+      #    - {d: os.vm.filesys}
+      #    - {d: os.vm.processmgt}
+      #    - {d: os.vm.memorymgt}
+      #    - {d: os.vm.syscall}
+      #    - {d: os.vm.drivers}
+      
+pcieiso:
+  layer: iso
+  probability: 0.2326
+  impact: 1.333
+  links:
+    - {d: net.pcie}
+
+vxlaniso:
+  layer: iso
+  probability: 0.3188
+  impact: 1.333
+  links:
+    - {d: net.ethAin}
+    - {d: net.ethC}

@@ -1,0 +1,79 @@
+
+includes:
+  - stencil.yml
+
+
+target:
+  - baselayer.node1
+
+attacker:
+  - baselayer.node2
+
+baselayer:
+  type: layer
+  upper: None
+  lower: None
+
+groups:
+  - {groupA: 0.41}
+  - {groupB: 0.42}
+  - {groupC: 0.43}
+
+
+node1:
+  layer: baselayer
+  links:
+    - {d: baselayer.inst.comm}
+  groups:
+    - groupA
+    - groupC
+
+node2:
+  layer: baselayer
+  links:
+    - {d: baselayer.inst.memory}
+  probability: 0.1
+  impact: 2.333
+  groups:
+    - groupB
+
+node3:
+  layer: baselayer
+  links:
+    - {d: baselayer.inst.syscall}
+    - {d: baselayer.node1}
+  probability: 0.8
+  impact: 1.8
+
+inst:
+  layer: baselayer
+  stencil: process
+  modifier:
+    - comm:
+        - {n: comm, g: [groupB,groupA]}
+        - {n: comm2, p: 0.666, i: 3.22}
+  links:
+    - {s: comm, d: baselayer.node1}
+    - {s: comm2, d: baselayer.node2}
+    - {s: syscall, d: baselayer.os.network}
+    - {s: memory, d: baselayer.os.memory}
+
+os:
+  layer: baselayer
+  stencil: linux
+  modifier:
+    - memory:
+        - {n: memory, p: 0.7, i: 2.0}
+  collapsed:
+    - network
+    - syscall
+    - processmgt
+    - memorymgt
+    - filesys
+  cprobability: 0.25
+  cimpact: 3.888
+  groups:
+    - groupC
+  links:
+    - {s: syscall, d: baselayer.inst.syscall}
+    - {s: memory, d: baselayer.inst.memory}

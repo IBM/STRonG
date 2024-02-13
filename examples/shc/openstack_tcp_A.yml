@@ -1,0 +1,258 @@
+# include the stencil and layer definitions
+# the listed files need to be located in the same directory
+# if not, relative paths are required
+includes:
+  - stencil.yml
+  - layer.yml
+
+# define the target nodes
+target:
+  - services.rabbitmq.core
+
+# list of designated attacker nodes
+attacker:
+  # - user.application.core
+  # - user.external
+  - user.attksrc
+
+groups:
+  - GP.core: 0.1013
+  - Gamqp: 0.3188
+  - Gmemory: 0.2326
+  - Gsyscall: 0.0737
+  - Gshcif: 0.1691
+  - Geth: 0.1388
+
+######################################################
+# services layer
+novacompute:
+  stencil: process
+  layer: services
+  modifier:
+    - comm:
+        - {n: amqp, g: Gamqp, i: 1.833}
+    - core:
+        - {n: core, g: GP.core, i: 2.000} # group for all proc-cores
+    - memory:
+        - {n: memory, g: Gmemory, i: 2.667}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.000}
+  links:
+    - {s: memory, d: os.computeOS.memory}
+    - {s: syscall, d: os.computeOS.syscall}
+    - {s: amqp, d: services.appfirewall.clEP}
+    - {s: amqp, d: services.rabbitmq.amqp} # direct path; anything
+                              # that makes it through the appFW
+    - {s: amqp, d: os.computeOS.network}
+  comment:
+    - "ctl system agent running on compute node using amqp for comm"
+
+
+rabbitmq:
+  stencil: process
+  layer: services
+  modifier:
+    - comm:
+        - {n: amqp, g: Gamqp, i: 2.167}
+    - core:
+        - {n: core, g: GP.core, i: 2.667}
+    - memory:
+        - {n: memory, g: Gmemory, i: 2.667}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.000}
+  links:
+    - {s: memory, d: os.controlOS.memory}
+    - {s: syscall, d: os.controlOS.syscall}
+    # - {s: amqp, d: services.protocheck.srvEP} # skip 'backward' path
+    - {s: amqp, d: os.controlOS.network}
+  comment:
+    - "ctl system server running on ctrl node"
+
+appfirewall:
+  stencil: process
+  layer: services
+  modifier:
+    - comm:
+        - {n: clEP, g: Gamqp, i: 1.833}  # client-side EP
+        - {n: srvEP, g: Gamqp, i: 2.167} # server-side EP
+    - core:
+        - {n: core, g: GP.core, i: 2.333}
+    - memory:
+        - {n: memory, g: Gmemory, i: 3.000}
+    - syscall:
+        - {n: syscall, g: Gsyscall, i: 3.000}
+  links:
+    # - {s: clEP, d: services.ctlagent.amqp}  # skip 'backward' path
+    - {s: srvEP, d: services.rabbitmq.amqp}
+    - {s: syscall, d: os.fwOS.syscall}
+    - {s: memory, d: os.fwOS.memory}
+    - {s: clEP, d: os.fwOS.network}
+    - {s: srvEP, d: os.fwOS.network}
+  comment:
+    - "app-level firewall, terminates TLS connections and filters
+       protocol traffic, running on separate node+OS"
+
+
+######################################################
+# User side app layer
+
+attksrc:
+  layer: user
+  links:
+    - {d: iso.vmiso}
+    - {d: iso.memiso}
+    - {d: iso.vxlaniso}
+    - {d: iso.pcieiso}
+  probability: 1.0
+  impact: 1.0
+
+
+######################################################
+#  OS layer for both (user and ctl)
+controlOS:
+  stencil: linux
+  layer: os
+  collapsed:
+    - drivers
+    - filesys
+    - memorymgt
+    - processmgt
+    # - network
+    # - syscall
+    # - memory
+  cprobability: 0.1767
+  cimpact: 4.0
+  links:
+    - {s: processmgt, d: services.rabbitmq.core}
+    - {s: memory, d: services.rabbitmq.memory}
+    - {s: syscall, d: services.rabbitmq.syscall}
+    - {s: network, d: services.rabbitmq.amqp}
+    # - {s: network, d: net.ethCout}
+
+
+fwOS:
+  stencil: linux
+  layer: os
+  modifier:
+    - network:
+        - {n: network, g: modeA1}
+  collapsed:
+    - drivers
+    - filesys
+    - memorymgt
+    - processmgt
+    # - network
+    # - syscall
+    # - memory
+  cprobability: 0.1767
+  cimpact: 4.0
+  links:
+    - {s: network, d: net.ethAout}
+    - {s: network, d: services.appfirewall.clEP}
+    - {s: network, d: services.appfirewall.srvEP}
+    - {s: processmgt, d: services.appfirewall.core}
+    - {s: memory, d: services.appfirewall.memory}
+    - {s: syscall, d: services.appfirewall.syscall}
+
+computeOS:
+  stencil: linux
+  layer: os
+  collapsed:
+    - drivers
+    - filesys
+    - memorymgt
+    - processmgt
+    - network
+    - syscall
+    - memory
+  cprobability: 0.1767
+  cimpact: 4.0
+  links:
+    - {s: processmgt, d: services.novacompute.core}
+    - {s: memory, d: services.novacompute.memory}
+    - {s: memory, d: net.pcie}
+    - {s: syscall, d: services.novacompute.syscall}
+    - {s: network, d: net.ethB}
+    - {s: network, d: services.novacompute.amqp}
+
+######################################################
+#  network layer
+ethAin:
+  layer: net
+  links:
+    - {d: os.fwOS.network}
+  groups:
+    - Geth
+  impact: 2.833
+  comment: "ethernet in-port of FW system"
+
+ethAout:
+  layer: net
+  links:
+    # - {d: os.computeOS.network}
+    - {d: net.ethC}
+  groups:
+    - Geth
+  impact: 2.500
+  comment: "ethernet out-port of FW system"
+
+ethC:
+  layer: net
+  links:
+    # - {d: os.snicOS.network}
+    - {d: os.controlOS.network}
+  groups:
+    - Geth
+  impact: 2.833
+
+ethB:
+  layer: net
+  links:
+    - {d: net.ethAin}
+    - {d: net.ethC}
+  groups:
+    - Geth
+  impact: 2.500
+
+pcie:
+  layer: net
+  links:
+    - {d: net.ethB}
+  probability: 0.1013
+  impact: 2.500
+
+######################################################
+#  isolation layer
+vmiso:
+  layer: iso
+  links:
+    - {d: os.computeOS.syscall}
+    - {d: os.computeOS.network}
+    - {d: os.computeOS.processmgt}
+    - {d: os.computeOS.memorymgt}
+    - {d: os.computeOS.filesys}
+    - {d: os.computeOS.drivers}
+  probability: 0.2960
+  impact: 1.667
+
+memiso:
+  layer: iso
+  links:
+    - {d: os.computeOS.memory}
+  probability: 0.2326
+  impact: 1.667
+
+pcieiso:
+  layer: iso
+  links:
+    - {d: net.pcie}
+  probability: 0.2326
+  impact: 1.333
+
+vxlaniso:
+  layer: iso
+  links:
+    - {d: net.ethAin}
+    - {d: net.ethC}
+  probability: 0.3188
+  impact: 1.333

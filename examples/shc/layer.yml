@@ -1,0 +1,27 @@
+services:
+  type: layer
+  # upper: None # can be omitted if no upper layer
+  lower: os
+
+shc:
+  type: layer
+  upper: services
+  lower: os
+
+os:
+  type: layer
+  upper: shc
+  lower: net
+
+net:
+  type: layer
+  upper: os
+  lower: none
+
+user:
+  type: layer
+  lower: os
+
+iso:
+  type: layer
+  

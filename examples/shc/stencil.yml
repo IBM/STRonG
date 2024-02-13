@@ -1,0 +1,73 @@
+process:
+  type: stencil
+  core:
+    links:
+      - {d: comm}
+      - {d: memory}
+      - {d: syscall}
+  comm:
+    links:
+      - {d: core}
+  memory:
+    links:
+      - {d: core}
+  syscall:
+    links:
+      - {d: core}
+
+
+
+linux:
+  type: stencil
+  syscall:
+    links:
+      - {d: memorymgt}
+      - {d: processmgt}
+      - {d: network}
+      - {d: filesys}
+      - {d: drivers}
+      - {d: memory}
+  memorymgt:
+    links:
+      - {d: memory}
+      - {d: processmgt}
+      - {d: network}
+      - {d: filesys}
+      - {d: drivers}
+      - {d: syscall}
+  processmgt:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: syscall}
+  network:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: drivers}
+      - {d: syscall}
+      - {d: filesys}
+  filesys:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: drivers}
+      - {d: network}
+      - {d: syscall}
+  drivers:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: network}
+      - {d: filesys}
+      - {d: syscall}
+  memory:
+    links:
+      - {d: memorymgt}
+      - {d: processmgt}
+      - {d: syscall}
+      - {d: network}
+      - {d: filesys}
+      - {d: drivers}
+
+

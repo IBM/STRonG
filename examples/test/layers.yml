@@ -1,0 +1,21 @@
+
+# layer definitions
+# layers are just defined by their name and their order
+
+
+# layername:
+#   type: layer  # necessary to distinguish from other node types
+#   upper: layer_above|None
+#   lower: layer_below|None
+################################################
+
+
+services:
+  type: layer
+  # upper: None # can be omitted if no upper layer
+  lower: os
+
+os:
+  type: layer
+  upper: services
+  lower: none

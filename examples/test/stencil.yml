@@ -1,0 +1,101 @@
+
+# Stencils are defined by their stencil name and contain a list of nodes
+# Each node defines a list of links (within this stencil only) and an
+# optional node probability.  If no node probability is provided, the
+# stencil can define a default probability.
+
+# template for a stencil:
+#
+# stencilname:
+#   type: stencil
+#   nodes:
+#     - node1:
+#         links:
+#           - node2
+#           - node3
+#         probability: [0.0-1.0]
+#     - node2:
+#         links:
+#           - node1
+#         probability: [0.0-1.0]
+#     - node3:
+#         links:
+#           - node2
+#           - node1
+#         probability: [0.0-1.0]
+#   probability: [0.0-1.0]   (default for nodes)
+################################################
+
+process:
+  type: stencil
+  core:
+    links:
+      - {d: comm, p: 0.777}
+      - {d: memory}
+      - {d: syscall, p: 0.2}
+  comm:
+    links:
+      - {d: core}
+  memory:
+    links:
+      - {d: core}
+  syscall:
+    links:
+      - {d: core}
+
+
+
+linux:
+  type: stencil
+  syscall:
+    links:
+      - {d: memorymgt}
+      - {d: processmgt}
+      - {d: network}
+      - {d: filesys}
+      - {d: drivers}
+      - {d: memory}
+  memorymgt:
+    links:
+      - {d: memory}
+      - {d: processmgt}
+      - {d: network}
+      - {d: filesys}
+      - {d: drivers}
+      - {d: syscall}
+  processmgt:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: syscall}
+  network:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: drivers}
+      - {d: syscall}
+      - {d: filesys}
+  filesys:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: drivers}
+      - {d: network}
+      - {d: syscall}
+  drivers:
+    links:
+      - {d: memory}
+      - {d: memorymgt}
+      - {d: network}
+      - {d: filesys}
+      - {d: syscall}
+  memory:
+    links:
+      - {d: memorymgt}
+      - {d: processmgt}
+      - {d: syscall}
+      - {d: network}
+      - {d: filesys}
+      - {d: drivers}
+
+
