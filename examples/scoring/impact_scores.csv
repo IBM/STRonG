@@ -1,0 +1,25 @@
+RWC,Value,Normalization
+R,1,0.167
+W,2,0.333
+C,3,0.500
+RW,3,0.500
+RC,4,0.667
+WC,5,0.833
+RWC,6,1.000
+Worst_case,6,1.000
+,,
+Layer,,
+app,1,0.333
+comm,2,0.667
+mgmt,3,1.000
+,,
+Connectivity,,
+passive,1,0.333
+command/active,2,0.667
+control,3,1.000
+default,2,0.667
+,,
+Impact Scope,,
+self,1,0.333
+layer,2,0.667
+crossLayer,3,1.000

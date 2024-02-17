@@ -1,0 +1,52 @@
+TCP_FW NodeList:,RWC,Layer,connect active,Impact Scope,Score,,SHC NodeList:,RWC,Layer,connect active,Impact Scope,Score,,Comments
+Node: services.ctlagent.core  ,RWC,app,passive,self,2.000,,Node: services.ctlagent.core  ,RWC,app,passive,self,2.000,,
+Node: services.ctlagent.grpc  ,RW,app,passive,layer,1.833,,Node: services.ctlagent.grpc  ,RW,app,passive,layer,1.833,,
+Node: services.ctlagent.memory  ,RWC,app,passive,crossLayer,2.667,,Node: services.ctlagent.memory  ,RWC,app,passive,crossLayer,2.667,,"memory compromise frequently allows for code execution, therefore we can say RWC is impacted in case of memory compromise"
+Node: services.ctlagent.syscall  ,RWC,app,command,crossLayer,3.000,,Node: services.ctlagent.syscall  ,RWC,app,command,crossLayer,3.000,,"unless we know exactly about any limiting aspects, we assume worst case RWC"
+,,,,,,,Node: services.ctlagent.shcif  ,RW,app,command,crossLayer,2.500,,_command_ because the process requests an SHC IF from the SHC daemon on that system
+,,,,,,,,,,,,,,
+Node: services.ctlservice.core  ,RWC,app,command,layer,2.667,,Node: services.ctlservice.core  ,RWC,app,command,layer,2.667,,"_command_ because the ctlservice does not have full control over the ctl agent, it can only send predefined commands"
+Node: services.ctlservice.grpc  ,RW,app,command,layer,2.167,,Node: services.ctlservice.grpc  ,RW,app,command,layer,2.167,,
+Node: services.ctlservice.memory  ,RWC,app,passive,crossLayer,2.667,,Node: services.ctlservice.memory  ,RWC,app,passive,crossLayer,2.667,,
+Node: services.ctlservice.syscall  ,RWC,app,command,crossLayer,3.000,,Node: services.ctlservice.syscall  ,RWC,app,command,crossLayer,3.000,,
+,,,,,,,Node: services.ctlservice.shcif  ,RW,app,command,crossLayer,2.500,,_command_ because the process requests an SHC IF from the SHC daemon on that system
+,,,,,,,,,,,,,,
+Node: os.controlOS.grouped  ,Worst_case,mgmt,control,crossLayer,4.000,,Node: os.controlOS.grouped  ,Worst_case,mgmt,control,crossLayer,4.000,,
+Node: os.fwOS.grouped  ,Worst_case,mgmt,control,crossLayer,4.000,,Node: os.snicOS.grouped  ,Worst_case,mgmt,control,crossLayer,4.000,,
+Node: os.computeOS.grouped  ,Worst_case,mgmt,control,crossLayer,4.000,,Node: os.computeOS.grouped  ,Worst_case,mgmt,control,crossLayer,4.000,,
+Node: os.vm.grouped  ,Worst_case,mgmt,default,crossLayer,3.667,,Node: os.vm.grouped  ,Worst_case,mgmt,default,crossLayer,3.667,,not in use because of collapsed VM/User side
+Node: os.vm.memory  ,RWC,mgmt,default,crossLayer,3.667,,Node: os.vm.memory  ,RWC,mgmt,default,crossLayer,3.667,,not in use because of collapsed VM/User side
+,,,,,,,,,,,,,,
+Node: net.ethB,RW,comm,default,layer,2.500,,,,,,,,,
+Node: net.pcie ,RW,comm,default,layer,2.500,,Node: net.pcie  ,RW,comm,default,crossLayer,2.833,,tcp/pcie has no access to appFW OS; whereas shc/pcie has access to snicOS and thus needs to be crossLayer
+Node: net.ethAin ,RW,comm,default,crossLayer,2.833,,Node: net.ethAin  ,RW,comm,default,crossLayer,2.833,,
+Node: net.ethAout,RW,comm,default,layer,2.500,,Node: net.ethAout  ,RW,comm,default,layer,2.500,,scope=layer because outbound eth only has edges towards ethIn and thus only impacts the eth/network layer
+Node: net.ethC ,RW,comm,default,crossLayer,2.833,,Node: net.ethC  ,RW,comm,default,crossLayer,2.833,,
+,,,,,,,,,,,,,,
+Node: iso.vmiso  ,RW,mgmt,default,layer,1.667,,Node: iso.memiso  ,RW,mgmt,default,layer,1.667,,"RWC and connectivity are kind of undefined for isolation nodes (iso == barrier with certain probability to break, but once broken, the impact is more about what's on 'the other side')"
+Node: iso.memiso  ,RW,mgmt,default,layer,1.667,,Node: iso.vmiso  ,RW,mgmt,default,layer,1.667,,... therefore maybe either drop (0.0) the impact of ISO nodes or just use 2 of the dimensions?
+Node: iso.pcieiso  ,RW,comm,default,layer,1.333,,Node: iso.pcieiso  ,RW,comm,default,layer,1.333,,
+Node: iso.etheriso  ,RW,comm,default,layer,1.333,,Node: iso.vxlaniso  ,RW,comm,default,layer,1.333,,
+,,,,,,,,,,,,,,
+Node: services.appfirewall.core  ,RWC,app,passive,layer,2.333,,Node: services.protocheck.core  ,RWC,app,passive,layer,2.333,,keep at 'passive' for now; subsequent distinction is made in clEP and srvEP
+Node: services.appfirewall.clEP  ,RW,app,passive,layer,1.833,,Node: services.protocheck.clEP  ,RW,app,passive,layer,1.833,,passive in case of OpenStack (nova-compute creates connection to rabbitmq)
+Node: services.appfirewall.srvEP  ,RW,app,command,layer,2.167,,Node: services.protocheck.srvEP  ,RW,app,command,layer,2.167,,active in case of OpenStack (continuation of nova-compute connection towards rabbitmq)
+Node: services.appfirewall.memory  ,RWC,app,default,crossLayer,3.000,,Node: services.protocheck.plugin  ,RWC,app,default,crossLayer,3.000,,
+Node: services.appfirewall.syscall  ,RWC,app,command,crossLayer,3.000,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,Node: shc.client.core  ,RWC,comm,passive,self,2.333,,
+,,,,,,,Node: shc.client.tcpssl  ,RW,comm,passive,layer,2.167,,
+Common Scores (any blanks mean non-generalizable values),,,,,,,Node: shc.client.shcif  ,RWC,comm,passive,crossLayer,3.000,,
+group.proc.core,RWC,,,self,1.333,,Node: shc.client.memory  ,RWC,comm,passive,crossLayer,3.000,,
+group.grpc,RW,,,layer,1.167,,Node: shc.client.syscall  ,RWC,comm,command,crossLayer,3.333,,
+group.memory,RWC,,default,crossLayer,3.000,,Node: shc.server.core  ,RWC,comm,control,crossLayer,3.667,,runs the plugin and therefore crossLayer and control
+group.syscall,RWC,,command,crossLayer,2.667,,Node: shc.server.tcpssl  ,RW,comm,command,layer,2.500,,
+group.shcif,RW,,,crossLayer,1.500,,Node: shc.server.plugin  ,Worst_case,comm,passive,crossLayer,3.000,,
+group.OS,Worst_case,,control,crossLayer,2.667,,Node: shc.server.shccomm  ,RWC,comm,control,layer,3.333,,
+group.eth,RW,,control,,1.167,,Node: shc.server.memory  ,RWC,comm,control,crossLayer,3.667,,
+,,,,,,,Node: shc.server.syscall  ,RWC,comm,command,crossLayer,3.333,,
+,,,,,,,Node: shc.host.core  ,RWC,comm,passive,self,2.333,,
+,,,,,,,Node: shc.host.shccomm  ,RW,comm,passive,layer,2.167,,
+,,,,,,,Node: shc.host.shcif  ,RWC,comm,passive,crossLayer,3.000,,
+,,,,,,,Node: shc.host.memory  ,RWC,comm,passive,crossLayer,3.000,,
+,,,,,,,Node: shc.host.syscall  ,RWC,comm,command,crossLayer,3.333,,
