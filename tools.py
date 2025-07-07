@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
-# 
+#
 # Copyright © 2020-2024 IBM Corporation
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 
 import argparse
 import os
@@ -104,14 +104,14 @@ def load_files(fname):
 
     ymldata={}
     with open(fname, 'r') as data_stream:
-        fdata = yaml.load(data_stream, Loader=yaml.Loader)
+        fdata = yaml.safe_load(data_stream)
 
         # see whether there are any include files defined
         include_files = fdata.pop("includes",[])
         for iname in include_files:
                 print("=====>>> Reading include file:",iname)
                 with open(yml_file_path+iname, 'r') as idata_stream:
-                    idata = yaml.load(idata_stream, Loader=yaml.Loader)
+                    idata = yaml.safe_load(idata_stream)
                     for n,d in idata.items():
                         if n in ymldata:
                             print("Duplicate key ",n,"found in", iname)
